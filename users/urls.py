@@ -9,7 +9,7 @@ from users.views import (
     profile,
     CustomLogoutView,
     CustomLoginView,
-    ServiceSubscriptionCreateAPIView,
+    ServiceSubscriptionCreateView,
     ServiceSubscriptionListAPIView,
 )
 
@@ -50,7 +50,7 @@ urlpatterns = [
     ),
     path(
         "users/service/subscribe/",
-        ServiceSubscriptionCreateAPIView.as_view(),
+        ServiceSubscriptionCreateView.as_view(),
         name="service_subscribe",
     ),
     path(

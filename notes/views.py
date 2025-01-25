@@ -1,7 +1,10 @@
 import os
 
+from django.http import HttpResponseForbidden
 from django.shortcuts import render
 from django.urls import reverse_lazy
+from django.views import View
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.generics import (
@@ -13,14 +16,16 @@ from rest_framework.generics import (
 )
 from django.views.generic.edit import (
     CreateView,
-    UpdateView
+    UpdateView, DeleteView
 )
 from django.views.generic import (
     ListView,
-    DetailView
+    DetailView, TemplateView
 )
+
+from users.models import CustomUser
 from users.services import create_stripe_price, create_stripe_session
-from .forms import FreeContentForm
+from .forms import FreeContentForm, PaidContentForm
 from .serializers import (
     PaidContentSerializer,
     FreeContentSerializer,
@@ -36,21 +41,63 @@ from users.permissions import IsOwner, SubscribedUser, IsModer, Buyer
 from rest_framework.permissions import AllowAny, IsAuthenticated
 
 
-class PaidContentCreateAPIView(CreateAPIView):
-    """Контроллер создания объекта модели платного контента"""
+def contacts(request):
+    return render(request, 'notes/contacts.html')
 
-    queryset = PaidContent.objects.all()
-    serializer_class = PaidContentSerializer
+
+class BuyerSubscriptionMixin:
+    """Mixin для проверки активной подписки на контент у пользователя."""
+
+    def dispatch(self, request, *args, **kwargs):
+        content_id = request.get('paid_content_id')
+        content = PaidContent.objects.filter(id=content_id)
+        user = request.user
+        subscription = PaidContent.objects.filter(content=content, user=user).exists()
+        if not subscription:
+            return HttpResponseForbidden("Вы не подписаны на этот контент. Требуется покупка подписки.")
+        return super().dispatch(request, *args, **kwargs)
+
+
+class MyContentListView(TemplateView):
+    """Контроллер просмотра списка контента созданного пользователем"""
+
+    template_name = 'notes/my_content_list.html'
+    context_object_name = 'content'
     permission_classes = [
-        SubscribedUser,
+        AllowAny,
     ]
 
+    def get(self, request, *args, **kwargs):
+        self.extra_context = {
+            "free_content": FreeContent.objects.filter(user=request.user.id),
+            "paid_content": PaidContent.objects.filter(user=request.user.id),
+        }
+        return self.render_to_response(self.extra_context)
 
-class PaidContentRetrieveAPIView(RetrieveAPIView):
+
+class PaidContentCreateView(CreateView):
+    """Контроллер создания объекта модели платного контента"""
+
+    model = PaidContent
+    form_class = PaidContentForm
+    template_name = 'notes/paid_content_create.html'
+    success_url = reverse_lazy('notes:paid_content_list')
+    permission_classes = [
+        IsAuthenticated,
+    ]
+
+    def form_valid(self, form):
+        user = self.request.user
+        form.instance.user = user
+        return super().form_valid(form)
+
+
+class PaidContentDetailView(BuyerSubscriptionMixin, DetailView):
     """Контроллер просмотра объекта модели платного контента"""
 
-    queryset = PaidContent.objects.all()
-    serializer_class = PaidContentSerializer
+    model = PaidContent
+    context_object_name = 'paid_content'
+    template_name = 'notes/paid_content_detail.html'
     permission_classes = [
         IsOwner,
         Buyer,
@@ -58,46 +105,41 @@ class PaidContentRetrieveAPIView(RetrieveAPIView):
     ]
 
 
-class PaidContentUpdateAPIView(UpdateAPIView):
+class PaidContentUpdateView(UpdateView):
     """Контроллер обновления объекта модели платного контента"""
 
-    queryset = PaidContent.objects.all()
-    serializer_class = PaidContentSerializer
+    model = PaidContent
+    form_class = PaidContentForm
+    template_name = 'notes/paid_content_create.html'
+    success_url = reverse_lazy('notes:paid_content_detail')
     permission_classes = [
         IsOwner,
         IsModer,
     ]
 
 
-class PaidContentDestroyAPIView(DestroyAPIView):
+class PaidContentDeleteView(DetailView):
     """Контроллер удаления объекта модели платного контента"""
 
-    queryset = PaidContent.objects.all()
-    serializer_class = PaidContentSerializer
+    model = PaidContent
     permission_classes = [
         IsOwner,
         IsModer,
     ]
+    context_object_name = 'paid_content'
+    template_name = 'notes/paid_content_destroy.html'
+    success_url = reverse_lazy('notes:paid_content_list')
 
 
-class PaidContentListAPIView(ListAPIView):
+class PaidContentListView(ListView):
     """Контроллер просмотра списка объектов модели платного контента"""
 
-    queryset = PaidContent.objects.all()
-    serializer_class = PaidContentListSerializer
+    model = PaidContent
+    template_name = 'notes/paid_content_list.html'
+    context_object_name = 'paid_content'
     permission_classes = [
-        AllowAny,
+        IsAuthenticated,
     ]
-
-
-# class FreeContentCreateAPIView(CreateAPIView):
-#     """Контроллер создания объекта модели бесплатного контента"""
-#
-#     queryset = FreeContent.objects.all()
-#     serializer_class = FreeContentSerializer
-#     permission_classes = [AllowAny,]
-#     template_name = 'notes/free_content_create.html'
-#     success_url = reverse_lazy('notes:free_content_list')
 
 
 class FreeContentCreateView(CreateView):
@@ -117,17 +159,6 @@ class FreeContentCreateView(CreateView):
         return super().form_valid(form)
 
 
-
-# class FreeContentRetrieveAPIView(RetrieveAPIView):
-#     """Контроллер просмотра объекта модели бесплатного контента"""
-#
-#     queryset = FreeContent.objects.all()
-#     serializer_class = FreeContentSerializer
-#     permission_classes = [AllowAny,]
-#     context_object_name = 'free_content'
-#     template_name = 'notes/free_content_detail.html'
-
-
 class FreeContentDetailView(DetailView):
     """Контроллер просмотра объекта модели бесплатного контента"""
 
@@ -137,18 +168,6 @@ class FreeContentDetailView(DetailView):
     permission_classes = [
         AllowAny,
     ]
-
-# class FreeContentUpdateAPIView(UpdateAPIView):
-#     """Контроллер обновления объекта модели бесплатного контента"""
-#
-#     queryset = FreeContent.objects.all()
-#     serializer_class = PaidContentSerializer
-#     permission_classes = [
-#         IsOwner,
-#         IsModer,
-#     ]
-#     template_name = 'notes/free_content_create.html'
-#     success_url = reverse_lazy('notes:free_content_list')
 
 
 class FreeContentUpdateView(UpdateView):
@@ -165,38 +184,21 @@ class FreeContentUpdateView(UpdateView):
 
     def form_valid(self, form):
         free_content = form.save
-        # user = self.request.user
-        # free_content.user = user
-        # free_content.save()
         return super().form_valid(form)
 
 
-class FreeContentDestroyAPIView(DestroyAPIView):
+class FreeContentDeleteView(DeleteView):
     """Контроллер удаления объекта модели бесплатного контента"""
 
-    queryset = PaidContent.objects.all()
-    serializer_class = PaidContentSerializer
+    model = FreeContent
     permission_classes = [
         IsOwner,
         IsModer,
     ]
+    context_object_name = 'free_content'
     template_name = 'notes/free_content_destroy.html'
     success_url = reverse_lazy('notes:free_content_list')
 
-
-# class FreeContentListAPIView(ListAPIView):
-#     """Контроллер просмотра списка объектов модели бесплатного контента"""
-#
-#     queryset = FreeContent.objects.all()
-#     serializer_class = FreeContentSerializer
-#     permission_classes = [
-#         AllowAny,
-#     ]
-#
-#     def get(self, request, *args, **kwargs):
-#         free_content = FreeContent.objects.all()
-#         context = {'free_content': free_content}
-#         return render(request, 'notes/free_content_list.html', context=context)
 
 class FreeContentListView(ListView):
     """Контроллер просмотра списка объектов модели бесплатного контента"""
@@ -209,9 +211,9 @@ class FreeContentListView(ListView):
     ]
 
 
-class ContentPaymentCreateAPIView(CreateAPIView):
-    serializer_class = PaymentSerializer
-    queryset = ContentPayment.objects.all()
+class ContentPaymentCreateAPIView(CreateView):
+    model = ContentPayment
+    template_name = 'notes/buy_content.html'
 
     def perform_create(self, serializer):
         payment = ContentPayment.objects.filter(user=self.request.user).exists()
@@ -229,13 +231,15 @@ class ContentPaymentCreateAPIView(CreateAPIView):
             payment.save()
 
 
-class BuyerSubscriptionCreateAPIView(CreateAPIView):
+class BuyerSubscriptionCreateView(CreateView):
     """Контроллер создания объекта подписки на оплаченный контент"""
 
-    serializer_class = BuyerSubscriptionSerializer
+    model = BuyerSubscription
     permission_classes = [
         IsAuthenticated,
     ]
+    template_name = 'notes/buy_content.html'
+    success_url = 'notes:paid_content_detail'
 
     def perform_create(self, serializer):
         if BuyerSubscription.objects.filter(

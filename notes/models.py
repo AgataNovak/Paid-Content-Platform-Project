@@ -5,7 +5,7 @@ from users.models import CustomUser
 class PaidContent(models.Model):
     """Модель платной записи"""
 
-    owner = models.ForeignKey(
+    user = models.ForeignKey(
         CustomUser,
         on_delete=models.CASCADE,
         null=False,
@@ -22,7 +22,7 @@ class PaidContent(models.Model):
         help_text="Введите название записи",
     )
 
-    note_body = models.CharField(
+    body = models.CharField(
         max_length=2000,
         default="Запись отсутствует",
         null=True,

@@ -2,20 +2,35 @@
 {% block title %}Просмотр профиля пользователя{% endblock %}
 {% load my_tags %}
 {% block content %}
-<div class="container mt-5">
+<div class="col-lg-6 mb-4 mb-lg-0">
     {% if user.avatar %}
-    <img src="{{ user.avatar | media_filter }}">
+    <div class="col-lg-6 mb-4 mb-lg-0">
+        <p><img src="{{ user.avatar | media_filter }}" width="150" height="150"></p>
+    </div>
     {% endif %}
-    <h1>
-        {{ user.username }}
-    </h1>
 </div>
-<p>
-    {{user.phone_number}}
-</p>
-{% if user.subscription %}
-<p>
-    Подписка на услуги сервиса активна
-</p>
-{% endif %}
+<div class="user-info">
+    <h6>Имя пользователя</h6>
+    <p class="user-name">
+        {{ user.username }}
+    </p>
+    <h6>Номер телефона</h6>
+    <p class="user-phone-number">
+      {{ user.phone_number }}
+    </p>
+    <h6>Email</h6>
+    <p class="user-name">
+        {{ user.email }}
+    </p>
+    {% if user.subscription %}
+    <p>
+      Подписка на услуги сервиса активна
+    </p>
+    {% else %}
+    <p>
+        Подписка на услуги сервиса отсутствует
+    </p>
+    <button type="button"><a href="{% url 'users:service_subscribe' %}">Приобрести подписку</a></button>
+  {% endif %}
+</div>
 {% endblock %}

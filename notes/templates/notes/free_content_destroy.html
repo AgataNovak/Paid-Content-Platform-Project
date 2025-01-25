@@ -3,7 +3,7 @@
 {% block title %}Удаление бесплатного контента{% endblock %}
 {% block content %}
 <h2>Удаление записи</h2>
-<p>Вы действительно хотите удалить запись f"{{object.name}}"?</p>
+<p>Вы действительно хотите удалить запись {{free_content.title}}?</p>
 <form method="post">
     {% csrf_token %}
     <button type="submit" class="btn btn-danger">Подтвердить</button>

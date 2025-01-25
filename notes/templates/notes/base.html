@@ -29,11 +29,16 @@
                     <a class="nav-link" href="{% url 'users:user_profile' %}">Мой профиль</a>
                 </li>
                 <li class="nav-item active">
-                    <a class="nav-link" href="#">Платный контент</a>
+                    <a class="nav-link" href="{% url 'notes:my_content' %}">Мой контент</a>
                 </li>
                 <li class="nav-item active">
-                    <a class="nav-link" href="#">Опубликовать платный контент</a>
+                    <a class="nav-link" href="{% url 'notes:paid_content_list' %}">Платный контент</a>
                 </li>
+                {% if user.subscription %}
+                <li class="nav-item active">
+                    <a class="nav-link" href="{% url 'notes:paid_content_create' %}">Опубликовать платный контент</a>
+                </li>
+                {% endif %}
                 {% else %}
                 <li>
                     <form method="post" action="{% url 'users:login' %}">
@@ -49,7 +54,7 @@
                     <a class="nav-link" href="{% url 'notes:free_content_create' %}">Опубликовать пост</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="#">Контакты</a>
+                    <a class="nav-link" href="{% url 'notes:contacts' %}">Контакты</a>
                 </li>
             </ul>
         </div>

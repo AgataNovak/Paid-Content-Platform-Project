@@ -1,0 +1,42 @@
+{% extends 'notes/base.html'%}
+{% block title %}Просмотр профиля пользователя{% endblock %}
+{% load my_tags %}
+{% block content %}
+<section class="bg-light">
+    <div class="container">
+      <div class="left">
+        <div class="row">
+            <div class="col-lg-12 mb-4 mb-sm-5">
+                <div class="card card-style1 border-0">
+                    <div class="card-body p-1-9 p-sm-2-3 p-md-6 p-lg-7">
+                        <div class="row align-items-center">
+                            <div class="col-lg-6 mb-4 mb-lg-0">
+                              <p><img src="{{ user.avatar | media_filter }}" width="10" height="10"></p>
+                            </div>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+          </div>
+        </div>
+      </div>
+  <div class="right">
+      <div class="col-lg-6 px-xl-10">
+          <div class="bg-secondary d-lg-inline-block py-1-9 px-1-9 px-sm-6 mb-1-9 rounded">
+              <h3 class="h2 text-white mb-0">{{ user.username }}</h3>
+              <span class="text-primary">
+                {% if user.subscription %}
+                Подписка на услуги сервиса активна
+                {% else %}
+                Подписка на услуги сервиса отсутствует
+                {% endif %}
+              </span>
+          </div>
+          <ul class="list-unstyled mb-1-9">
+              <li class="mb-2 mb-xl-3 display-28"><span class="display-26 text-secondary me-2 font-weight-600">Номер:</span> {{ user.phone_number }} </li>
+              <li class="mb-2 mb-xl-3 display-28"><span class="display-26 text-secondary me-2 font-weight-600">Email:</span> {{ user.email }} </li>
+          </ul>
+      </div>
+  </div>
+</section>
+{% endblock %}

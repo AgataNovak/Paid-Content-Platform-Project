@@ -1,5 +1,5 @@
 from django import forms
-from .models import FreeContent
+from .models import FreeContent, PaidContent
 
 
 class FreeContentForm(forms.ModelForm):
@@ -20,4 +20,30 @@ class FreeContentForm(forms.ModelForm):
         self.fields['body'].widget.attrs.update({
             'class': 'form-control',
             'placeholder': 'Введите содержание контента'
+        })
+
+
+class PaidContentForm(forms.ModelForm):
+    """Форма для создания и редактирования объекта модели PaidContent"""
+    class Meta:
+        model = PaidContent
+        fields = ['title', 'body', 'video_link', 'price']
+
+    def __init__(self, *args, **kwargs):
+
+        super(PaidContentForm, self).__init__(*args, **kwargs)
+
+        self.fields['title'].widget.attrs.update({
+            'class': 'form-control',
+            'placeholder': 'Введите название контента'
+        })
+
+        self.fields['body'].widget.attrs.update({
+            'class': 'form-control',
+            'placeholder': 'Введите содержание контента'
+        })
+
+        self.fields['price'].widget.attrs.update({
+            'class': 'form-control',
+            'placeholder': 'Введите цену доступа к контенту'
         })

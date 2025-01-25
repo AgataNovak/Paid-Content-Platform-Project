@@ -19,7 +19,7 @@ class CustomUser(AbstractUser):
     )
 
     avatar = models.ImageField(
-        upload_to="static/images/users/avatars/",
+        upload_to="users/avatars",
         verbose_name="Фото профиля пользователя",
         blank=True,
         null=True,
@@ -132,6 +132,13 @@ class ServiceSubscription(models.Model):
         null=False,
         verbose_name="Статус активности подписки",
         help_text="Введите статус активности подписки",
+    )
+
+    payment_link = models.URLField(
+        blank=True,
+        null=True,
+        verbose_name='Ссылка на оплату подписки',
+        help_text='Введите ссылку на оплату подписки',
     )
 
     class Meta:

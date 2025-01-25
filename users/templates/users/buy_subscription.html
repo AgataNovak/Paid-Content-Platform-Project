@@ -1,0 +1,36 @@
+{% extends 'notes/base.html' %}
+
+{% block title %}Список платного контента{% endblock %}
+{% block content %}
+<div class="container">
+    <h1>Покупка подписки на услуги</h1>
+
+    <!-- Сообщение об ошибках или успехе -->
+    {% if message %}
+        <div class="alert alert-info" role="alert">
+            {{ message }}
+        </div>
+    {% endif %}
+
+    <form method="post" action="{% url 'users:service_subscribe' %}" id="subscription-form">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="subscription-type">Выберите тип подписки:</label>
+            <select class="form-control" id="subscription-type" name="subscription_type">
+                <option value="monthly">Единоразовая подписка</option>
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary">Купить подписку</button>
+    </form>
+
+    <div id="payment-link" style="margin-top: 20px;">
+        <!-- Ссылка на оплату будет показана здесь -->
+        {% if payment_link %}
+            <h4>Платежная информация:</h4>
+            <p>Вы можете оплатить подписку по следующей ссылке:
+                <a href="{{ payment_link }}" target="_blank">{{ payment_link }}</a>
+            </p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

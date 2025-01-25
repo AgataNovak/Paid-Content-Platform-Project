@@ -6,7 +6,7 @@ from django import forms
 class CustomUserCreationForm(UserCreationForm):
     class Meta(UserCreationForm.Meta):
         model = CustomUser
-        fields = ("username", "phone_number", "avatar", "password1", "password2")
+        fields = ("username", "phone_number", "email", "avatar", "password1", "password2")
 
     def clean_phone_number(self):
         phone_number = self.cleaned_data.get("phone_number")
