@@ -3,7 +3,8 @@ from rest_framework.serializers import ModelSerializer
 from .models import (
     PaidContent,
     FreeContent,
-    ContentSubscriptionPayment
+    ContentPayment,
+    BuyerSubscription,
 )
 
 
@@ -35,5 +36,13 @@ class PaymentSerializer(ModelSerializer):
     """Сериализатор выполняет сериализацию данных для модели Payment"""
 
     class Meta:
-        model = ContentSubscriptionPayment
+        model = ContentPayment
+        fields = "__all__"
+
+
+class BuyerSubscriptionSerializer(ModelSerializer):
+    """Сериализатор выполняет сериализацию данных для модели BuyerSubscription"""
+
+    class Meta:
+        model = BuyerSubscription
         fields = "__all__"

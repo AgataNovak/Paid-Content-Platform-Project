@@ -1,23 +1,21 @@
-import os
-
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
 
-class User(AbstractUser):
+class CustomUser(AbstractUser):
     """Модель пользователя"""
 
     username = models.CharField(
+        unique=True,
         max_length=50,
         blank=False,
         null=False,
         verbose_name="Имя пользователя",
-        help_text="Введите имя пользователя"
+        help_text="Введите имя пользователя",
     )
 
     email = models.EmailField(
-        verbose_name="Email пользователя",
-        help_text="Введите e-mail пользователя"
+        verbose_name="Email пользователя", help_text="Введите e-mail пользователя"
     )
 
     avatar = models.ImageField(
@@ -43,9 +41,9 @@ class User(AbstractUser):
         help_text="Укажите наличие подписки",
     )
 
-    USERNAME_FIELD = "phone_number"
+    USERNAME_FIELD = "username"
     REQUIRED_FIELDS = [
-        "username",
+        "phone_number",
     ]
 
     class Meta:
@@ -57,15 +55,15 @@ class User(AbstractUser):
 
 
 class Payment(models.Model):
-    """Модель оплаты контента"""
+    """Модель оплаты"""
 
     user = models.ForeignKey(
-        User,
+        CustomUser,
         on_delete=models.CASCADE,
         blank=False,
         null=False,
         verbose_name="Пользователь",
-        help_text="Введите пользователя"
+        help_text="Введите пользователя",
     )
 
     payment_amount = models.PositiveIntegerField(
@@ -74,12 +72,21 @@ class Payment(models.Model):
         help_text="Введите сумму к оплате",
     )
 
-    payment_date = models.DateTimeField(
+    created_at = models.DateTimeField(
         auto_now_add=True,
         blank=False,
         null=False,
-        verbose_name="Дата оплаты",
-        help_text="Введите дату оплаты",
+        verbose_name="Дата создания счета",
+        help_text="Введите дату создания счета",
+    )
+
+    status = models.CharField(
+        default="unpaid",
+        max_length=100,
+        blank=False,
+        null=False,
+        verbose_name="Статус оплаты",
+        help_text="Введите статус оплаты",
     )
 
     session_id = models.CharField(
@@ -99,27 +106,35 @@ class Payment(models.Model):
     )
 
     def __str__(self):
-        return f"{self.user} - {self.paid_content} - {self.payment_amount} - {self.payment_date}"
+        return f"{self.user} - {self.payment_amount} - {self.created_at}"
 
     class Meta:
-        verbose_name = "Покупка доступа к записи"
-        verbose_name_plural = "Покупки доступа к записям"
-        ordering = ["payment_date"]
+        verbose_name = "Оплата"
+        verbose_name_plural = "Оплаты"
+        ordering = ["created_at"]
 
 
 class ServiceSubscription(models.Model):
     """Модель подписки на услуги сервиса"""
 
     user = models.ForeignKey(
-        User,
+        CustomUser,
         on_delete=models.CASCADE,
         blank=False,
         null=False,
         verbose_name="Пользователь",
-        help_text="Введите пользователя"
+        help_text="Введите пользователя",
+    )
+
+    is_active = models.BooleanField(
+        default=True,
+        blank=False,
+        null=False,
+        verbose_name="Статус активности подписки",
+        help_text="Введите статус активности подписки",
     )
 
     class Meta:
-        verbose_name = "Подписка на услуги сервиса"
-        verbose_name_plural = "Подписки на услуги сервиса"
+        verbose_name = "Подписка на сервис"
+        verbose_name_plural = "Подписки на сервис"
         ordering = ["user"]

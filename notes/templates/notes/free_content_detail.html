@@ -1,0 +1,21 @@
+{% extends 'notes/base.html' %}
+
+{% block title %}Детали бесплатного контента{% endblock %}
+{% block content %}
+    <div class="container mt-5">
+        <h1 class="mb-4">{{ free_content.title }}</h1>
+        <p>
+            Автор -
+            {{ free_content.user.username }}</p>
+
+        <p>
+            {{free_content.body}}
+        </p>
+        <p>
+            Ссылка на материалы:
+        </p>
+        <p class="nav-item active">
+            <a class="link" href="{{ free_content.video_link }}">{{free_content.video_link}}</a>
+        </p>
+    </div>
+{% endblock %}

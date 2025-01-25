@@ -1,0 +1,63 @@
+<!-- base.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}LET ME KNOW{% endblock %}</title>
+    <!-- Подключение Bootstrap CSS -->
+    <link rel="stylesheet" href="/static/css/bootstrap.min.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <a class="navbar-brand" href="{% url 'notes:free_content_list' %}">
+            LET ME KNOW
+        </a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav">
+                {% if user.is_authenticated %}
+                <li>
+                    <form method="post" action="{% url 'users:logout' %}">
+                        {% csrf_token %}
+                        <button type="submit">Выйти</button>
+                    </form>
+                </li>
+                <li class="nav-item active">
+                    <a class="nav-link" href="{% url 'users:user_profile' %}">Мой профиль</a>
+                </li>
+                <li class="nav-item active">
+                    <a class="nav-link" href="#">Платный контент</a>
+                </li>
+                <li class="nav-item active">
+                    <a class="nav-link" href="#">Опубликовать платный контент</a>
+                </li>
+                {% else %}
+                <li>
+                    <form method="post" action="{% url 'users:login' %}">
+                        {% csrf_token %}
+                        <button type="submit">Войти</button>
+                    </form>
+                </li>
+                <li class="nav-item active">
+                    <a class="nav-link" href="{% url 'users:register' %}">Зарегистрироваться</a>
+                </li>
+                {% endif %}
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'notes:free_content_create' %}">Опубликовать пост</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#">Контакты</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    <div class="container mt-5">
+        {% block content %}{% endblock %}
+    </div>
+    <!-- Подключение Bootstrap JS -->
+    <script src="/static/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

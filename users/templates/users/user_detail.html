@@ -1,0 +1,21 @@
+{% extends 'notes/base.html'%}
+{% block title %}Просмотр профиля пользователя{% endblock %}
+{% load my_tags %}
+{% block content %}
+<div class="container mt-5">
+    {% if user.avatar %}
+    <img src="{{ user.avatar | media_filter }}">
+    {% endif %}
+    <h1>
+        {{ user.username }}
+    </h1>
+</div>
+<p>
+    {{user.phone_number}}
+</p>
+{% if user.subscription %}
+<p>
+    Подписка на услуги сервиса активна
+</p>
+{% endif %}
+{% endblock %}
