@@ -1,8 +1,11 @@
 import os
+import requests
+import stripe
 from django.contrib.auth import login, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView, LogoutView
-from django.shortcuts import render, get_object_or_404
+from django.http import HttpResponse
+from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, DetailView
 from django.contrib import auth
@@ -28,6 +31,9 @@ from rest_framework.generics import (
 from .services import create_stripe_price, create_stripe_session
 
 
+stripe.api_key = os.environ['STRIPE_API_KEY']
+
+
 class UserCreateView(CreateView):
     """Контроллер создания объекта класса User"""
 
@@ -37,8 +43,6 @@ class UserCreateView(CreateView):
     success_url = reverse_lazy('notes:free_content_list')
 
     def form_valid(self, form):
-        print(form.cleaned_data)
-        print('Файлы в request:', self.request.FILES)
         to_return = super().form_valid(form)
         user = authenticate(
             username=form.cleaned_data["username"],
@@ -82,148 +86,59 @@ class UserProfileViewSet(viewsets.ModelViewSet):
         serializer.save()
 
 
-# class PaymentCreateAPIView(CreateAPIView):
-#     serializer_class = PaymentSerializer
-#     queryset = Payment.objects.all()
-#
-#     def perform_create(self, serializer):
-#         payment = Payment.objects.filter(user=self.request.user).exists()
-#         if payment:
-#             message = (
-#                 f"Счет на оплату уже создан и доступен по ссылке {payment.payment_link}"
-#             )
-#             return Response({"message": message}, status=status.HTTP_409_CONFLICT)
-#         else:
-#             payment = serializer.save(user=self.request.user)
-#             price = create_stripe_price(os.environ["SERVICE_SUBSCRIPTION_PRICE"])
-#             session_id, payment_link = create_stripe_session(price)
-#             payment.session_id = session_id
-#             payment.payment_link = payment_link
-#             payment.save()
-#
-#
-# class ServiceSubscriptionCreateView(CreateView):
-#     """Контроллер создания объекта подписки на услуги сервиса"""
-#
-#     model = ServiceSubscription
-#     template_name = 'users/buy_subscription.html'
-#     permission_classes = [
-#         IsAuthenticated,
-#     ]
-#     context_object_name = 'subscription'
-#
-#     fields = '__all__'
-#
-#     def form_valid(self, serializer):
-#         if ServiceSubscription.objects.filter(
-#             user=self.request.user, is_active=True
-#         ).exists():
-#             return Response(
-#                 {"message": "Подписка на услуги сервиса уже активна."},
-#                 status=status.HTTP_400_BAD_REQUEST,
-#             )
-#         payment = Payment.objects.filter(user=self.request.user).exists()
-#         if not payment:
-#             payment = Payment.objects.create(
-#                 user=self.request.user,
-#             )
-#             payment.save()
-#             payment.payment_link = payment.payment_link
-#             payment.save()
-#             return Response(
-#                 {
-#                     "message": f"Счет создан и готов к оплате по ссылке {payment.payment_link}"
-#                 },
-#                 status=status.HTTP_202_ACCEPTED,
-#             )
-#         else:
-#             if payment.status != "paid":
-#                 return Response(
-#                     {
-#                         "message": f"Подписка на услуги сервиса ожидает оплаты. "
-#                         f"Пожалуйста, оплатите счет по ссылке {payment.payment_link}"
-#                     },
-#                     status=status.HTTP_400_BAD_REQUEST,
-#                 )
-#             subscription = ServiceSubscription.objects.create(
-#                 user=self.request.user, is_active=True
-#             )
-#             subscription.save()
-#             return Response(
-#                 {"message": "Подписка на услуги сервиса активизирована"},
-#                 status=status.HTTP_201_CREATED,
-#             )
-#
-#     def get_success_url(self):
-#         return reverse_lazy('notes:paid_content_list')
+def create_payment(request):
+    payment_amount = create_stripe_price(int(os.environ["SERVICE_SUBSCRIPTION_PRICE"]) * 100)
+    payment_session = create_stripe_session(payment_amount)
+    session_id = payment_session.get('id')
+    payment_link = payment_session.get('url')
+    payment = Payment.objects.create(
+        user=request.user,
+        payment_amount=payment_amount["unit_amount"],
+        payment_link=payment_link,
+        session_id=session_id
+    )
+    payment.save()
+    return payment
 
-class PaymentCreateAPIView(CreateAPIView):
-    serializer_class = PaymentSerializer
-    queryset = Payment.objects.all()
 
-    def perform_create(self, serializer):
-        # Проверяем существует ли платеж для текущего пользователя
-        payment_exists = Payment.objects.filter(user=self.request.user).first()
-        if payment_exists:
-            message = (
-                f"Счет на оплату уже создан и доступен по ссылке {payment_exists.payment_link}"
-            )
-            return Response({"message": message}, status=status.HTTP_409_CONFLICT)
+@login_required
+def buy_subscription(request):
+    payment = Payment.objects.get(user=request.user)
+    if request.method == 'POST':
+        if not payment:
+            payment = create_payment(request)
+            context = {'payment': payment}
+            return render(request, 'users/buy_subscription.html', context)
         else:
-            # Создание нового платежа
-            payment = serializer.save(user=self.request.user)
-            price = create_stripe_price(os.environ["SERVICE_SUBSCRIPTION_PRICE"])
-            session_id, payment_link = create_stripe_session(price)
-            payment.session_id = session_id
-            payment.payment_link = payment_link
-            payment.save()
-            return payment  # Вернем созданный объект платежа для последующего использования
-
-
-class ServiceSubscriptionCreateView(CreateView):
-    model = ServiceSubscription
-    template_name = 'users/buy_subscription.html'
-    permission_classes = [IsAuthenticated]
-    fields = '__all__'
-
-    def form_valid(self, form):
-        print(form.cleaned_data)
-        # Проверка активной подписки
-        if ServiceSubscription.objects.filter(user=self.request.user, is_active=True).exists():
-            return Response({"message": "Подписка на услуги сервиса уже активна."}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Сначала создаем платеж
-        payment_serializer = PaymentSerializer(data={"user": self.request.user.id})  # Например, если у вас есть пользователь
-        if payment_serializer.is_valid():
-            payment = PaymentCreateAPIView.as_view()(self.request)  # Создаем платеж
-            if payment.status_code == status.HTTP_409_CONFLICT:
-                return Response(payment.data, status=status.HTTP_409_CONFLICT)
-            payment_link = payment.data.get("payment_link")
+            try:
+                response = stripe.PaymentIntent.retrieve(payment.session_id)
+                if response["status"] == "succeeded":
+                    request.user.subscription = True
+                    payment.status = 'paid'
+                    return render(request, 'notes/paid_content_list.html')
+                else:
+                    context = {'payment': payment}
+                    return render(request, 'users/buy_subscription.html', context)
+            except Exception as ex:
+                context = {'payment': payment}
+                print(ex)
+                return render(request, 'users/buy_subscription.html', context)
+    else:
+        if not payment:
+            payment = create_payment(request)
+            context = {'payment': payment}
+            return render(request, 'users/buy_subscription.html', context)
         else:
-            return Response(payment_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-        # Проверка на статус платежа
-        if payment.status != "paid":
-            return Response({
-                "message": f"Подписка на услуги сервиса ожидает оплаты. "
-                f"Пожалуйста, оплатите счет по ссылке {payment_link}"
-            }, status=status.HTTP_400_BAD_REQUEST)
-
-        # Создание подписки
-        subscription = ServiceSubscription.objects.create(user=self.request.user, is_active=True)
-        return Response({"message": "Подписка на услуги сервиса активизирована"}, status=status.HTTP_201_CREATED)
-
-    def get_success_url(self):
-        return reverse_lazy('notes:paid_content_list')
-
-
-class ServiceSubscriptionListAPIView(ListAPIView):
-    """Контроллер просмотра списка объектов класса ServiceSubscription"""
-
-    serializer_class = ServiceSubscriptionSerializer
-    permission_classes = [
-        IsAuthenticated,
-    ]
-
-    def get_queryset(self):
-        return ServiceSubscription.objects.filter(user=self.request.user)
+            try:
+                response = stripe.PaymentIntent.retrieve(payment.session_id)
+                if response["status"] == "succeeded":
+                    request.user.subscription = True
+                    payment.status = 'paid'
+                    return render(request, 'notes/paid_content_list.html')
+                else:
+                    context = {'payment': payment}
+                    return render(request, 'users/buy_subscription.html', context)
+            except Exception as ex:
+                context = {'payment': payment}
+                print(ex)
+                return render(request, 'users/buy_subscription.html', context)

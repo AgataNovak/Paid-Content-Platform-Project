@@ -1,36 +1,24 @@
 {% extends 'notes/base.html' %}
 
-{% block title %}Список платного контента{% endblock %}
+{% block title %}Покупка подписки на услуги сервиса{% endblock %}
 {% block content %}
 <div class="container">
-    <h1>Покупка подписки на услуги</h1>
-
-    <!-- Сообщение об ошибках или успехе -->
-    {% if message %}
-        <div class="alert alert-info" role="alert">
-            {{ message }}
-        </div>
-    {% endif %}
-
+    <h1>Покупка подписки на услуги сервиса</h1>
+    {% if user.subscription == 'paid' %}
+    <div>
+        <h2>Подписка на услуги сервиса активна</h2>
+    </div>
+    {% else %}
     <form method="post" action="{% url 'users:service_subscribe' %}" id="subscription-form">
         {% csrf_token %}
-        <div class="form-group">
-            <label for="subscription-type">Выберите тип подписки:</label>
-            <select class="form-control" id="subscription-type" name="subscription_type">
-                <option value="monthly">Единоразовая подписка</option>
-            </select>
-        </div>
+        <input type="hidden" name="user" value="{{ request.user.id }}">
+        <p>Вы собираетесь произвести единоразовую оплату за подписку.</p>
         <button type="submit" class="btn btn-primary">Купить подписку</button>
     </form>
-
-    <div id="payment-link" style="margin-top: 20px;">
-        <!-- Ссылка на оплату будет показана здесь -->
-        {% if payment_link %}
-            <h4>Платежная информация:</h4>
-            <p>Вы можете оплатить подписку по следующей ссылке:
-                <a href="{{ payment_link }}" target="_blank">{{ payment_link }}</a>
-            </p>
-        {% endif %}
-    </div>
+    {% if payment %}
+    <p> Оплатите подписку по ссылке</p>
+    <a href={{payment.payment_link}}>Ссылка на оплату</a>
+    {% endif %}
+    {% endif %}
 </div>
 {% endblock %}

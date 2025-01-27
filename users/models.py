@@ -106,7 +106,8 @@ class Payment(models.Model):
     )
 
     def __str__(self):
-        return f"{self.user} - {self.payment_amount} - {self.created_at}"
+        return (f"{self.user} - {self.payment_amount} - {self.created_at} - "
+                f"{self.status} - {self.session_id} - {self.payment_link}")
 
     class Meta:
         verbose_name = "Оплата"

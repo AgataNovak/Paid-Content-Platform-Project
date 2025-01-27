@@ -1,5 +1,7 @@
 import os
 
+import stripe
+from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden
 from django.shortcuts import render
 from django.urls import reverse_lazy
@@ -23,7 +25,7 @@ from django.views.generic import (
     DetailView, TemplateView
 )
 
-from users.models import CustomUser
+from users.models import CustomUser, Payment
 from users.services import create_stripe_price, create_stripe_session
 from .forms import FreeContentForm, PaidContentForm
 from .serializers import (
@@ -58,6 +60,16 @@ class BuyerSubscriptionMixin:
         return super().dispatch(request, *args, **kwargs)
 
 
+class UserSubscribedMixin:
+    """Mixin для проверки активной подписки на сервис у пользователя."""
+
+    def dispatch(self, request, *args, **kwargs):
+        user = request.user
+        if not user.subscription:
+            return HttpResponseForbidden("Для публикации платного контента требуется покупка подписки на сервис.")
+        return super().dispatch(request, *args, **kwargs)
+
+
 class MyContentListView(TemplateView):
     """Контроллер просмотра списка контента созданного пользователем"""
 
@@ -75,7 +87,7 @@ class MyContentListView(TemplateView):
         return self.render_to_response(self.extra_context)
 
 
-class PaidContentCreateView(CreateView):
+class PaidContentCreateView(CreateView, UserSubscribedMixin):
     """Контроллер создания объекта модели платного контента"""
 
     model = PaidContent
@@ -170,6 +182,7 @@ class FreeContentDetailView(DetailView):
     ]
 
 
+
 class FreeContentUpdateView(UpdateView):
     """Контроллер обновления объекта модели бесплатного контента"""
 
@@ -211,24 +224,64 @@ class FreeContentListView(ListView):
     ]
 
 
-class ContentPaymentCreateAPIView(CreateView):
-    model = ContentPayment
-    template_name = 'notes/buy_content.html'
+def create_payment(request, price):
+    payment_amount = create_stripe_price(price * 100)
+    payment_session = create_stripe_session(payment_amount)
+    session_id = payment_session.get('id')
+    payment_link = payment_session.get('url')
+    payment = Payment.objects.create(
+        user=request.user,
+        payment_amount=payment_amount["unit_amount"],
+        payment_link=payment_link,
+        session_id=session_id
+    )
+    payment.save()
+    return payment
 
-    def perform_create(self, serializer):
-        payment = ContentPayment.objects.filter(user=self.request.user).exists()
-        if payment:
-            message = (
-                f"Счет на оплату уже создан и доступен по ссылке {payment.payment_link}"
-            )
-            return Response({"message": message}, status=status.HTTP_409_CONFLICT)
+
+@login_required
+def buy_content_subscription(request):
+    content_id = request.get('content_id')
+    content_price = PaidContent.objects.get(id=content_id).price
+    payment = Payment.objects.get(user=request.user)
+    if request.method == 'POST':
+        if not payment:
+            payment = create_payment(request, content_price)
+            context = {'payment': payment}
+            return render(request, 'users/buy_paid_content.html', context)
         else:
-            payment = serializer.save(user=self.request.user)
-            price = create_stripe_price(os.environ["SERVICE_SUBSCRIPTION_PRICE"])
-            session_id, payment_link = create_stripe_session(price)
-            payment.session_id = session_id
-            payment.payment_link = payment_link
-            payment.save()
+            try:
+                response = stripe.PaymentIntent.retrieve(payment.session_id)
+                if response["status"] == "succeeded":
+                    request.user.subscription = True
+                    payment.status = 'paid'
+                    return render(request, 'notes/paid_content_detail.html')
+                else:
+                    context = {'payment': payment}
+                    return render(request, 'users/buy_paid_content.html', context)
+            except Exception as ex:
+                context = {'payment': payment}
+                print(ex)
+                return render(request, 'users/buy_paid_content.html', context)
+    else:
+        if not payment:
+            payment = create_payment(request, content_price)
+            context = {'payment': payment}
+            return render(request, 'users/buy_paid_content.html', context)
+        else:
+            try:
+                response = stripe.PaymentIntent.retrieve(payment.session_id)
+                if response["status"] == "succeeded":
+                    request.user.subscription = True
+                    payment.status = 'paid'
+                    return render(request, 'notes/buy_paid_content.html')
+                else:
+                    context = {'payment': payment}
+                    return render(request, 'users/buy_paid_content.html', context)
+            except Exception as ex:
+                context = {'payment': payment}
+                print(ex)
+                return render(request, 'users/buy_paid_content.html', context)
 
 
 class BuyerSubscriptionCreateView(CreateView):

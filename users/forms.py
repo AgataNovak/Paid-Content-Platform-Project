@@ -1,4 +1,4 @@
-from users.models import CustomUser
+from users.models import CustomUser, ServiceSubscription
 from django.contrib.auth.forms import UserCreationForm
 from django import forms
 
@@ -18,3 +18,10 @@ class CustomUserCreationForm(UserCreationForm):
 class LoginForm(forms.Form):
     username = forms.CharField()
     password = forms.CharField(widget=forms.PasswordInput)
+
+
+class BuySubscriptionForm(forms.Form):
+
+    class Meta:
+        model = ServiceSubscription
+        fields = "__all__"

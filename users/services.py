@@ -25,4 +25,4 @@ def create_stripe_session(price):
         line_items=[{"price": price, "quantity": 1}],
         mode="payment",
     )
-    return session.get("id"), session.get("url")
+    return session

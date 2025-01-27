@@ -9,8 +9,7 @@ from users.views import (
     profile,
     CustomLogoutView,
     CustomLoginView,
-    ServiceSubscriptionCreateView,
-    ServiceSubscriptionListAPIView,
+    buy_subscription,
 )
 
 app_name = UsersConfig.name
@@ -44,13 +43,8 @@ urlpatterns = [
         name='logout',
     ),
     path(
-        "users/service/subscriptions/",
-        ServiceSubscriptionListAPIView.as_view(),
-        name="service_subscriptions",
-    ),
-    path(
         "users/service/subscribe/",
-        ServiceSubscriptionCreateView.as_view(),
+        buy_subscription,
         name="service_subscribe",
     ),
     path(
