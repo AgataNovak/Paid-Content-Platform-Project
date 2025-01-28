@@ -25,6 +25,13 @@ jobs:
   test:
     needs: lint
     runs-on: ubuntu-latest
+    env:
+      POSTGRES_ENGINE: ${{ secrets.POSTGRES_ENGINE }}
+      POSTGRES_NAME: ${{ secrets.POSTGRES_NAME }}
+      POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+      POSTGRES_HOST: ${{ secrets.POSTGRES_HOST }}
+      POSTGRES_PORT: ${{ secrets.POSTGRES_PORT }}
 
     steps:
       - name: Check out code
@@ -34,15 +41,6 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.12'
-
-      - name: Set up environment variables
-        run: |
-          echo "POSTGRES_ENGINE" >> $GITHUB_ENV
-          echo "POSTGRES_NAME" >> $GITHUB_ENV
-          echo "POSTGRES_USER" >> $GITHUB_ENV
-          echo "POSTGRES_PASSWORD" >> $GITHUB_ENV
-          echo "POSTGRES_HOST" >> $GITHUB_ENV
-          echo "POSTGRES_PORT" >> $GITHUB_ENV
 
       - name: Install dependencies
         run: |
