@@ -32,6 +32,7 @@ jobs:
       POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
       POSTGRES_HOST: ${{ secrets.POSTGRES_HOST }}
       POSTGRES_PORT: ${{ secrets.POSTGRES_PORT }}
+      STRIPE_API_KEY: ${{ secrets.STRIPE_API_KEY }}
 
     steps:
       - name: Check out code
