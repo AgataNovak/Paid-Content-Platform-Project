@@ -38,7 +38,5 @@ class Buyer(permissions.BasePermission):
     message = "Buyer is allowed to only retrieve only bought content"
 
     def has_object_permission(self, request, view, obj):
-        if obj in ContentPayment.objects.filter(user=request.user).get(
-            "paid_content"
-        ):
+        if obj in ContentPayment.objects.filter(user=request.user).get("paid_content"):
             return True

@@ -1,46 +1,29 @@
 import os
-import requests
 import stripe
 from django.contrib.auth import login, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView, LogoutView
-from django.http import HttpResponse
-from django.shortcuts import render, get_object_or_404, redirect
+from django.shortcuts import render
 from django.urls import reverse_lazy
-from django.views.generic import CreateView, DetailView
-from django.contrib import auth
+from django.views.generic import CreateView
 from .forms import CustomUserCreationForm
-from .permissions import IsOwner, IsModer
 from rest_framework import viewsets
-from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from .models import CustomUser, ServiceSubscription, Payment
-from rest_framework.response import Response
-from .serializers import (
-    UserSerializer,
-    PaymentSerializer,
-    ServiceSubscriptionSerializer,
-)
-from rest_framework.generics import (
-    CreateAPIView,
-    RetrieveAPIView,
-    UpdateAPIView,
-    DestroyAPIView,
-    ListAPIView,
-)
+from .models import CustomUser, Payment
+from .serializers import UserSerializer
 from .services import create_stripe_price, create_stripe_session
 
 
-stripe.api_key = os.environ['STRIPE_API_KEY']
+stripe.api_key = os.environ["STRIPE_API_KEY"]
 
 
 class UserCreateView(CreateView):
     """Контроллер создания объекта класса User"""
 
     permission_classes = (AllowAny,)
-    template_name = 'users/register.html'
+    template_name = "users/register.html"
     form_class = CustomUserCreationForm
-    success_url = reverse_lazy('notes:free_content_list')
+    success_url = reverse_lazy("notes:free_content_list")
 
     def form_valid(self, form):
         to_return = super().form_valid(form)
@@ -57,17 +40,17 @@ class UserCreateView(CreateView):
 
 @login_required
 def profile(request):
-    return render(request, 'users/user_detail.html')
+    return render(request, "users/user_detail.html")
 
 
 class CustomLoginView(LoginView):
     template_name = "users/login.html"
-    success_url = reverse_lazy('notes:free_content_list')
+    success_url = reverse_lazy("notes:free_content_list")
 
 
 class CustomLogoutView(LogoutView):
-    template_name = 'notes/free_content_list.html'
-    success_url = reverse_lazy('notes:free_content_list')
+    template_name = "notes/free_content_list.html"
+    success_url = reverse_lazy("notes:free_content_list")
 
 
 class UserProfileViewSet(viewsets.ModelViewSet):
@@ -87,15 +70,17 @@ class UserProfileViewSet(viewsets.ModelViewSet):
 
 
 def create_payment(request):
-    payment_amount = create_stripe_price(int(os.environ["SERVICE_SUBSCRIPTION_PRICE"]) * 100)
+    payment_amount = create_stripe_price(
+        int(os.environ["SERVICE_SUBSCRIPTION_PRICE"]) * 100
+    )
     payment_session = create_stripe_session(payment_amount)
-    session_id = payment_session.get('id')
-    payment_link = payment_session.get('url')
+    session_id = payment_session.get("id")
+    payment_link = payment_session.get("url")
     payment = Payment.objects.create(
         user=request.user,
         payment_amount=payment_amount["unit_amount"],
         payment_link=payment_link,
-        session_id=session_id
+        session_id=session_id,
     )
     payment.save()
     return payment
@@ -103,42 +88,38 @@ def create_payment(request):
 
 @login_required
 def buy_subscription(request):
-    payment = Payment.objects.get(user=request.user)
-    if request.method == 'POST':
-        if not payment:
-            payment = create_payment(request)
-            context = {'payment': payment}
-            return render(request, 'users/buy_subscription.html', context)
+    payment_exists = Payment.objects.filter(user=request.user).exists()
+    if payment_exists:
+        payment = Payment.objects.get(user=request.user)
+        if request.method == "POST":
+            try:
+                response = stripe.PaymentIntent.retrieve(payment.session_id)
+                if response["status"] == "succeeded":
+                    request.user.subscription = True
+                    payment.status = "paid"
+                    return render(request, "notes/paid_content_list.html")
+                else:
+                    context = {"payment": payment}
+                    return render(request, "users/buy_subscription.html", context)
+            except Exception as ex:
+                context = {"payment": payment}
+                print(ex)
+                return render(request, "users/buy_subscription.html", context)
         else:
             try:
                 response = stripe.PaymentIntent.retrieve(payment.session_id)
                 if response["status"] == "succeeded":
                     request.user.subscription = True
-                    payment.status = 'paid'
-                    return render(request, 'notes/paid_content_list.html')
+                    payment.status = "paid"
+                    return render(request, "notes/paid_content_list.html")
                 else:
-                    context = {'payment': payment}
-                    return render(request, 'users/buy_subscription.html', context)
+                    context = {"payment": payment}
+                    return render(request, "users/buy_subscription.html", context)
             except Exception as ex:
-                context = {'payment': payment}
+                context = {"payment": payment}
                 print(ex)
-                return render(request, 'users/buy_subscription.html', context)
+                return render(request, "users/buy_subscription.html", context)
     else:
-        if not payment:
-            payment = create_payment(request)
-            context = {'payment': payment}
-            return render(request, 'users/buy_subscription.html', context)
-        else:
-            try:
-                response = stripe.PaymentIntent.retrieve(payment.session_id)
-                if response["status"] == "succeeded":
-                    request.user.subscription = True
-                    payment.status = 'paid'
-                    return render(request, 'notes/paid_content_list.html')
-                else:
-                    context = {'payment': payment}
-                    return render(request, 'users/buy_subscription.html', context)
-            except Exception as ex:
-                context = {'payment': payment}
-                print(ex)
-                return render(request, 'users/buy_subscription.html', context)
+        payment = create_payment(request)
+        context = {"payment": payment}
+        return render(request, "users/buy_subscription.html", context)

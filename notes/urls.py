@@ -13,22 +13,14 @@ from .views import (
     FreeContentListView,
     MyContentListView,
     BuyerSubscriptionCreateView,
-    contacts
+    contacts,
 )
 
 app_name = NotesConfig.name
 
 urlpatterns = [
-    path(
-        "content/my_content/",
-        MyContentListView.as_view(),
-        name='my_content'
-    ),
-    path(
-        "content/free/",
-        FreeContentListView.as_view(),
-        name="free_content_list"
-    ),
+    path("content/my_content/", MyContentListView.as_view(), name="my_content"),
+    path("content/free/", FreeContentListView.as_view(), name="free_content_list"),
     path(
         "content/free/create/",
         FreeContentCreateView.as_view(),
@@ -49,11 +41,7 @@ urlpatterns = [
         FreeContentDeleteView.as_view(),
         name="free_content_destroy",
     ),
-    path(
-        "content/paid/",
-        PaidContentListView.as_view(),
-        name="paid_content_list"
-    ),
+    path("content/paid/", PaidContentListView.as_view(), name="paid_content_list"),
     path(
         "content/paid/create/",
         PaidContentCreateView.as_view(),
@@ -77,11 +65,11 @@ urlpatterns = [
     path(
         "content/paid/<int:pk>/buy/",
         BuyerSubscriptionCreateView.as_view(),
-        name='buy_paid_content',
+        name="buy_paid_content",
     ),
     path(
         "contacts/",
         contacts,
-        name='contacts',
+        name="contacts",
     ),
 ]

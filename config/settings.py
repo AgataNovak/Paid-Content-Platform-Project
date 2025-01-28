@@ -7,7 +7,8 @@ dotenv.load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.environ["SECRET_KEY"]
+# SECRET_KEY = os.environ["SECRET_KEY"]
+SECRET_KEY = "django-insecure-genkeg^hy05gssji#2t5g+0$8&d^9ahl+g^6tpz1l*kgqa2yk4"
 
 DEBUG = True
 
@@ -21,8 +22,9 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
+    "rest_framework_simplejwt",
     "django_filters",
-    'drf_yasg',
+    "drf_yasg",
     "notes",
     "users",
 ]
@@ -100,13 +102,13 @@ STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
 # STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 
 MEDIA_URL = "media/"
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 AUTH_USER_MODEL = "users.CustomUser"
 
-LOGIN_REDIRECT_URL = 'users:user_profile'
+LOGIN_REDIRECT_URL = "users:user_profile"
 
 REST_FRAMEWORK = {
     "DEFAULT_FILTER_BACKENDS": [
