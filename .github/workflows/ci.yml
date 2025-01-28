@@ -35,6 +35,15 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: Set up environment variables
+        run: |
+          echo "POSTGRES_ENGINE" >> $GITHUB_ENV
+          echo "POSTGRES_NAME" >> $GITHUB_ENV
+          echo "POSTGRES_USER" >> $GITHUB_ENV
+          echo "POSTGRES_PASSWORD" >> $GITHUB_ENV
+          echo "POSTGRES_HOST" >> $GITHUB_ENV
+          echo "POSTGRES_PORT" >> $GITHUB_ENV
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
