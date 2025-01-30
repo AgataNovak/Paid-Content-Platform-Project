@@ -7,10 +7,8 @@ from django.shortcuts import render
 from django.urls import reverse_lazy
 from django.views.generic import CreateView
 from .forms import CustomUserCreationForm
-from rest_framework import viewsets
-from rest_framework.permissions import AllowAny, IsAuthenticated
-from .models import CustomUser, Payment
-from .serializers import UserSerializer
+from rest_framework.permissions import AllowAny
+from .models import Payment
 from .services import create_stripe_price, create_stripe_session
 
 
@@ -53,22 +51,6 @@ class CustomLogoutView(LogoutView):
     success_url = reverse_lazy("notes:free_content_list")
 
 
-class UserProfileViewSet(viewsets.ModelViewSet):
-    """Контроллер операций с личным профилем авторизованного пользователя"""
-
-    queryset = CustomUser.objects.all()
-    serializer_class = UserSerializer
-    permission_classes = [
-        IsAuthenticated,
-    ]
-
-    def get_queryset(self):
-        return self.queryset.filter(id=self.request.user.id)
-
-    def perform_update(self, serializer):
-        serializer.save()
-
-
 def create_payment(request):
     payment_amount = create_stripe_price(
         int(os.environ["SERVICE_SUBSCRIPTION_PRICE"]) * 100
@@ -91,34 +73,22 @@ def buy_subscription(request):
     payment_exists = Payment.objects.filter(user=request.user).exists()
     if payment_exists:
         payment = Payment.objects.get(user=request.user)
-        if request.method == "POST":
-            try:
-                response = stripe.PaymentIntent.retrieve(payment.session_id)
-                if response["status"] == "succeeded":
-                    request.user.subscription = True
-                    payment.status = "paid"
-                    return render(request, "notes/paid_content_list.html")
-                else:
-                    context = {"payment": payment}
-                    return render(request, "users/buy_subscription.html", context)
-            except Exception as ex:
-                context = {"payment": payment}
-                print(ex)
-                return render(request, "users/buy_subscription.html", context)
-        else:
-            try:
-                response = stripe.PaymentIntent.retrieve(payment.session_id)
-                if response["status"] == "succeeded":
-                    request.user.subscription = True
-                    payment.status = "paid"
-                    return render(request, "notes/paid_content_list.html")
-                else:
-                    context = {"payment": payment}
-                    return render(request, "users/buy_subscription.html", context)
-            except Exception as ex:
-                context = {"payment": payment}
-                print(ex)
-                return render(request, "users/buy_subscription.html", context)
+        try:
+            response = stripe.PaymentIntent.retrieve(payment.session_id)
+            if response["status"] == "succeeded":
+                request.user.subscription = True
+                request.user.save()
+                payment.status = "paid"
+                payment.save()
+                return render(request, "notes/paid_content_list.html")
+            else:
+                return render(
+                    request, "users/buy_subscription.html", {"payment": payment}
+                )
+        except Exception as ex:
+            context = {"payment": payment}
+            print(ex)
+            return render(request, "users/buy_subscription.html", context)
     else:
         payment = create_payment(request)
         context = {"payment": payment}

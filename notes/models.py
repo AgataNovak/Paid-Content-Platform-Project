@@ -2,54 +2,8 @@ from django.db import models
 from users.models import CustomUser
 
 
-class PaidContent(models.Model):
-    """Модель платной записи"""
-
-    user = models.ForeignKey(
-        CustomUser,
-        on_delete=models.CASCADE,
-        null=False,
-        blank=False,
-        verbose_name="Пользователь",
-        help_text="Укажите пользователя",
-    )
-
-    title = models.CharField(
-        max_length=150,
-        null=False,
-        blank=False,
-        verbose_name="Название записи",
-        help_text="Введите название записи",
-    )
-
-    body = models.CharField(
-        max_length=2000,
-        default="Запись отсутствует",
-        null=True,
-        blank=True,
-        verbose_name="Запись",
-        help_text="Введите запись",
-    )
-
-    video_link = models.CharField(
-        max_length=500,
-        null=True,
-        blank=True,
-        verbose_name="Ссылка на видео-материал",
-        help_text="Введите ссылку на видео-материал",
-    )
-
-    price = models.PositiveIntegerField(
-        default=0,
-        null=False,
-        blank=False,
-        verbose_name="Цена доступа к записи",
-        help_text="Введите цену доступа к записи в рублях",
-    )
-
-
-class FreeContent(models.Model):
-    """Модель бесплатной записи"""
+class Content(models.Model):
+    """Модель записи"""
 
     user = models.ForeignKey(
         CustomUser,
@@ -81,6 +35,27 @@ class FreeContent(models.Model):
         blank=True,
         verbose_name="Ссылка на видео-материал",
         help_text="Введите ссылку на видео-материал",
+    )
+
+    class Meta:
+        abstract = True
+
+
+class FreeContent(Content):
+    """Модель бесплатной записи"""
+
+    pass
+
+
+class PaidContent(Content):
+    """Модель платной записи"""
+
+    price = models.PositiveIntegerField(
+        default=0,
+        null=False,
+        blank=False,
+        verbose_name="Цена доступа к записи",
+        help_text="Введите цену доступа к записи в рублях",
     )
 
 
@@ -137,6 +112,15 @@ class ContentPayment(models.Model):
         help_text="Укажите ссылку на оплату",
     )
 
+    status = models.CharField(
+        default="unpaid",
+        max_length=100,
+        blank=False,
+        null=False,
+        verbose_name="Статус оплаты",
+        help_text="Введите статус оплаты",
+    )
+
     def __str__(self):
         return f"{self.user} - {self.paid_content} - {self.payment_amount} - {self.created_at}"
 
@@ -156,8 +140,9 @@ class BuyerSubscription(models.Model):
         help_text="Укажите пользователя",
     )
 
-    content = models.ManyToManyField(
+    content = models.ForeignKey(
         PaidContent,
+        on_delete=models.CASCADE,
         verbose_name="Контент",
         help_text="Укажите контент",
     )

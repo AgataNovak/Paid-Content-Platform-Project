@@ -12,7 +12,7 @@ from .views import (
     FreeContentDeleteView,
     FreeContentListView,
     MyContentListView,
-    BuyerSubscriptionCreateView,
+    buy_content_subscription,
     contacts,
 )
 
@@ -64,7 +64,7 @@ urlpatterns = [
     ),
     path(
         "content/paid/<int:pk>/buy/",
-        BuyerSubscriptionCreateView.as_view(),
+        buy_content_subscription,
         name="buy_paid_content",
     ),
     path(
