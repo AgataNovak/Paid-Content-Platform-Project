@@ -243,7 +243,6 @@ def buy_content_subscription(request, pk):
         except Exception as ex:
             context = {"payment": payment}
             print(ex)
-            print("error mama mia")
             return render(request, "notes/buy_paid_content.html", context)
 
     payment = create_payment(request, content_price, pk)
