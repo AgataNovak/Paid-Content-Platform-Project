@@ -1,0 +1,32 @@
+{% extends 'notes/base.html' %}
+
+{% block title %}Создание и редактирование бесплатного контента{% endblock %}
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col">
+            <form class="row" method="post" enctype="multipart/form-data ">
+                <div class="card">
+                    <div class="card-body">
+                        {% csrf_token %}
+                        {{ form.as_p }}
+                        <button type="submit" class="btn btn-primary">
+                            {% if object %}
+                            Сохранить
+                            {% else %}
+                            Создать
+                            {% endif %}
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<p>Чтобы размещать платный контент, необходимо приобрести подписку на сервис</p>
+<button>
+    <a class="nav_link" href="{% url 'users:service_subscribe' %}">Приобрести подписку</a>
+    <!-- Здесь нада ссылку на подписку -->
+</button>
+
+{% endblock %}

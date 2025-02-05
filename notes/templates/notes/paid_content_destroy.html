@@ -1,0 +1,12 @@
+{% extends 'notes/base.html' %}
+
+{% block title %}Удаление платного контента{% endblock %}
+{% block content %}
+<h2>Удаление записи</h2>
+<p>Вы действительно хотите удалить запись {{paid_content.title}}?</p>
+<form method="post">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger">Подтвердить</button>
+    <a href="{% url 'notes:my_content' %}" class="btn btn-secondary">Отмена</a>
+</form>
+{% endblock %}

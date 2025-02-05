@@ -1,0 +1,18 @@
+{% extends 'notes/base.html' %}
+
+{% block title %}Покупка подписки на контент{% endblock %}
+{% block content %}
+<div class="container">
+    <h1>Покупка подписки на контент</h1>
+    <form method="post" action="{% url 'notes:buy_paid_content' %}" id="subscription-form">
+        {% csrf_token %}
+        <input type="hidden" name="user" value="{{ request.user.id }}">
+        <p>Вы собираетесь произвести единоразовую оплату за подписку на контент.</p>
+        <button type="submit" class="btn btn-primary">Купить подписку на контент</button>
+    </form>
+    {% if payment %}
+    <p> Оплатите подписку по ссылке</p>
+    <a href={{payment.payment_link}}>Ссылка на оплату</a>
+    {% endif %}
+</div>
+{% endblock %}

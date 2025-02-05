@@ -1,0 +1,29 @@
+{% extends 'notes/base.html' %}
+
+{% block title %}Детали платного контента{% endblock %}
+{% block content %}
+    <div class="container mt-5">
+        <h1 class="mb-4">{{ paid_content.title }}</h1>
+        <p>
+            Автор -
+            {{ paid_content.user.username }}</p>
+
+        <p>
+            {{paid_content.body}}
+        </p>
+        <p>
+            Ссылка на материалы:
+        </p>
+        <p class="nav-item active">
+            <a class="link" href="{{ paid_content.video_link }}">{{paid_content.video_link}}</a>
+        </p>
+        {% if paid_content.user == user %}
+        <p>
+            <a href="{% url 'notes:paid_content_update' paid_content.pk %}" class="btn btn-primary my-2"> Редактировать </a>
+        </p>
+        <p>
+            <a href="{% url 'notes:paid_content_destroy' paid_content.pk %}" class="btn btn-primary my-2"> Удалить </a>
+        </p>
+        {% endif %}
+    </div>
+{% endblock %}
